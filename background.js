@@ -2,8 +2,14 @@
 
 // 사이드바 버튼 클릭 시 활성화 설정
 chrome.runtime.onInstalled.addListener(() => {
-  if (chrome.sidePanel) {
-    chrome.sidePanel.setPanelOptions({ enabled: true });
+  // sidePanel API가 존재하고, setPanelOptions 함수가 유효한지 체크
+  if (typeof chrome.sidePanel !== 'undefined' && typeof chrome.sidePanel.setPanelOptions === 'function') {
+    chrome.sidePanel.setPanelOptions({ 
+      path: 'sidepanel/panel.html',
+      enabled: true 
+    }).catch((error) => console.error("SidePanel Setup Error:", error));
+  } else {
+    console.log("SidePanel API not available or slightly different in this browser version.");
   }
 });
 
