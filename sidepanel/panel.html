@@ -42,17 +42,48 @@
         </div>
       </div>
 
-      <!-- Section: AI Activation Guide (Hidden by default) -->
-      <section id="ai-guide-section" class="section glass-card" style="display: none; border: 1px solid var(--color-accent);">
-        <div class="section-header">
-          <h3 style="color: var(--color-accent);">💡 Gemini Nano 활성화 방법</h3>
+      <!-- Section: AI Setup Wizard (Smart Diagnostic) -->
+      <section id="ai-wizard-section" class="section wizard-card" style="display: none;">
+        <div class="wizard-header">
+          <div class="wizard-title-group">
+            <span class="wizard-icon">🪄</span>
+            <h3>AI 활성화 마법사</h3>
+          </div>
+          <span class="wizard-status-tag" id="wizard-diag-status">진단 중...</span>
         </div>
-        <div class="guide-content" style="font-size: 12px; line-height: 1.6;">
-          <ol>
-            <li>Chrome 주소창에 <code>chrome://flags/#optimization-guide-on-device-model</code> 입력 후 <strong>Enabled (Bypass control block)</strong> 선택</li>
-            <li><code>chrome://flags/#prompt-api-for-gemini-nano</code> 입력 후 <strong>Enabled</strong> 선택</li>
-            <li>Chrome 재시작 후 <code>chrome://components</code>에서 <strong>Optimization Guide On Device Model</strong> 버전이 다운로드될 때까지 대기</li>
-          </ol>
+        
+        <div class="wizard-steps">
+          <!-- Step 1: Flags -->
+          <div class="step-item" id="step-flags">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>크롬 실험실 설정</h4>
+              <p>AI 엔진을 활성화하기 위해 아래 설정을 켜주세요.</p>
+              <div class="step-actions">
+                <button class="btn-tiny" onclick="window.open('chrome://flags/#optimization-guide-on-device-model')">주소 복사 1</button>
+                <button class="btn-tiny" onclick="window.open('chrome://flags/#prompt-api-for-gemini-nano')">주소 복사 2</button>
+              </div>
+              <p class="step-hint">💡 <strong>Enabled (Bypass control block)</strong>을 권장합니다.</p>
+            </div>
+          </div>
+
+          <!-- Step 2: Components -->
+          <div class="step-item" id="step-components">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>AI 모델 다운로드</h4>
+              <p>브라우저가 실제로 AI를 다운로드했는지 확인합니다.</p>
+              <div class="step-actions">
+                <button class="btn-tiny" onclick="window.open('chrome://components')">컴포넌트 페이지 열기</button>
+              </div>
+              <p class="step-hint">💡 <strong>Optimization Guide</strong> 항목을 업데이트하세요.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <p>설정 완료 후 브라우저를 다시 시작(Relaunch)해 주세요.</p>
+          <button id="btn-re-check" class="btn btn-secondary btn-block">🔄 다시 진단하기</button>
         </div>
       </section>
 

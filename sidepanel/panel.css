@@ -343,6 +343,143 @@ body {
   backdrop-filter: blur(10px);
 }
 
+/* Wizard UI */
+.wizard-card {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wizard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wizard-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-icon {
+  font-size: 18px;
+}
+
+.wizard-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c7d2fe;
+}
+
+.wizard-status-tag {
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--color-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.wizard-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.step-item.active {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.step-item.complete {
+  opacity: 0.6;
+}
+
+.step-item.complete .step-num {
+  background: var(--color-success);
+  color: white;
+}
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.step-content p {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  line-height: 1.4;
+}
+
+.step-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-tiny {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--color-text-main);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-tiny:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.step-hint {
+  margin-top: 6px;
+  font-size: 10px !important;
+  color: var(--color-primary) !important;
+}
+
+.wizard-footer {
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+
+.wizard-footer p {
+  font-size: 10px;
+  color: var(--color-text-dim);
+  margin-bottom: 8px;
+}
+
 /* Footer */
 .app-footer {
   display: flex;

@@ -47,35 +47,50 @@ function updateCharCount(text) {
 }
 
 // ==========================================
-// 2. PAGE STARTUP ACTIONS
+// 2. PAGE STARTUP ACTIONS & DIAGNOSTICS
 // ==========================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function runDiagnostics() {
   const model = await getAiModel();
   const outputBox = document.getElementById('ai-output');
-  const textInput = document.getElementById('text-input');
   const statusBadge = document.getElementById('ai-model-badge');
   const statusDot = document.getElementById('system-status-dot');
+  const wizardSection = document.getElementById('ai-wizard-section');
+  const diagStatus = document.getElementById('wizard-diag-status');
   
   if (!model) {
     statusDot.classList.add('offline');
-    statusDot.title = "Chrome 내장 AI 미감지 (오프라인 모의 분석 실행)";
     statusBadge.innerText = "MOCK LOCAL AI";
-    outputBox.innerHTML = 
-      "🔮 <strong>오프라인 비서가 대기 중입니다.</strong><br/>" +
-      "<span style='font-size: 11px; color: var(--color-text-sub);'>" +
-      "크롬 내장 Gemini Nano가 감지되지 않았으나, 하이브리드 로컬 테스트 모듈이 활성화되어 원활한 테스트가 가능합니다. 대화창에 글을 입력해 보세요.</span>";
+    wizardSection.style.display = 'flex';
+    diagStatus.innerText = "설정 필요";
     
-    // Show AI activation guide if model is not detected
-    document.getElementById('ai-guide-section').style.display = 'block';
+    // Detailed Step Diagnostics
+    if (!window.ai) {
+      document.getElementById('step-flags').classList.add('active');
+    } else {
+      document.getElementById('step-flags').classList.add('complete');
+      document.getElementById('step-components').classList.add('active');
+      diagStatus.innerText = "모델 다운로드 중";
+    }
   } else {
     statusDot.classList.remove('offline');
-    statusDot.title = "Chrome Gemini Nano 활성화 완료";
     statusBadge.innerText = "GEMINI NANO ACTIVE";
+    wizardSection.style.display = 'none';
     outputBox.innerText = "🔮 크롬 내장 Gemini Nano가 안전하게 연동되었습니다. 대화를 불러오거나 입력해 주십시오.";
   }
-  
-  // Character counter
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const textInput = document.getElementById('text-input');
+  await runDiagnostics();
   updateCharCount(textInput.innerText);
+});
+
+document.getElementById('btn-re-check').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-re-check');
+  btn.innerText = "⏳ 진단 중...";
+  aiModel = null; // Reset cache
+  await runDiagnostics();
+  setTimeout(() => { btn.innerText = "🔄 다시 진단하기"; }, 500);
 });
 
 // ==========================================
