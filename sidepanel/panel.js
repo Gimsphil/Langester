@@ -34,14 +34,8 @@ async function getAiModel() {
 function getSimulatedAIResponse(text) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(`[AI 요약 및 추천 답변]
-대화 내용 요약: 
-상대방은 오늘 발표된 마케팅 협력 일정 조율에 동의하였으며, 세부적인 작업량 분담 및 구글 Tasks 동기화 모듈 개발 일정 확정을 희망하고 있습니다.
-
-추천 답변 3가지:
-1. (짧게) 의견 주셔서 감사합니다! 구체적인 미팅 기한을 정하는 게 어떨까요?
-2. (정중하게) 제안해 주신 업무 분담안을 감사히 검토하였습니다. 상호 유기적인 조율을 위해 다가오는 화요일 화상 회의 일정을 제안드리고자 합니다. 편하신 시간대를 회신해 주시면 감사하겠습니다.
-3. (협상형) 일정 단축안은 긍정적입니다. 다만, 신규 모듈 개발 공수를 감안할 때 일정 조정에 따른 마케팅 예산 상향이나 범위 축소가 필요해 보입니다. 함께 의논하시죠.`);
+      resolve(`• 요점: 상대방이 마케팅 협력 일정 조율에 동의하였으며 세부 분담 논의를 희망함.
+• 추천 답변: 제안해주신 의견에 감사드리며, 세부 일정을 확정하기 위해 다음 주 화요일 오전 10시 회의를 제안합니다.`);
     }, 450);
   });
 }
@@ -89,7 +83,11 @@ document.getElementById('text-input').addEventListener('input', async (e) => {
   const currentText = e.target.innerText.trim();
   updateCharCount(currentText);
   
-  if (currentText.length < 5) return;
+  // 너무 짧은 텍스트는 AI 연동 건너뛰기
+  if (currentText.length < 10) {
+    document.getElementById('ai-output').innerText = "텍스트가 너무 짧습니다. 대화가 더 입력되면 분석을 시작합니다.";
+    return;
+  }
 
   // Debouncing to avoid flooding the API
   clearTimeout(aiTimeout);
@@ -97,20 +95,35 @@ document.getElementById('text-input').addEventListener('input', async (e) => {
     const model = await getAiModel();
     const outputBox = document.getElementById('ai-output');
     
-    outputBox.innerText = "⚡ 실시간 의도 분석 및 맞춤형 답변 생성 중...";
+    outputBox.innerText = "Gemini가 문맥 분석 중...";
     
     if (model) {
       try {
+        // 갱신할 때마다 기존 오염된 컨텍스트가 꼬이지 않도록 명확한 단발성 세션 생성
         const session = await model.create({
-          systemPrompt: "너는 다국어 협상 및 업무 회의를 대행하여 조율하는 한국인 전문 통역 비서야. 대화 내용을 깔끔하게 분석하고, 내가 전송할 수 있는 상황별 답변 3가지(짧은 구어 / 정중한 격식 / 비즈니스 협상형)를 한국어로 추천해줘."
+          systemPrompt: "너는 사용자의 브라우저 화면 자막을 분석하는 비서야. 오직 제공된 [대화 내용]에만 집중해서 답해야 해."
         });
         
-        const prompt = `다음 대화 내용의 핵심 용도를 1줄 요약하고 추천 답변을 각각 한 줄씩 작성해줘:\n\n"${currentText}"`;
-        const result = await session.prompt(prompt);
-        outputBox.innerText = result;
-        session.destroy();
+        // 로컬 AI(Gemini Nano)가 명령과 본문을 헷갈리지 않게 XML 형태의 태그로 완벽히 분리
+        const structuredPrompt = `
+[명령어]
+아래 제공된 [대화 내용]의 핵심 요점과 그에 맞는 추천 답변을 한국어로 작성해라. 다른 사설이나 인사말은 절대 하지 마라.
+
+[형식]
+• 요점: (한 줄 요약)
+• 추천 답변: (대화에 이어질 자연스러운 답변 한 줄)
+
+[대화 내용]
+"""
+${currentText}
+"""
+`;
+
+        const result = await session.prompt(structuredPrompt);
+        outputBox.innerText = result.trim();
+        session.destroy(); 
       } catch (err) {
-        outputBox.innerText = "내장 AI 분석 에러: " + err.message;
+        outputBox.innerText = "내장 AI 분석 오류: " + err.message;
       }
     } else {
       // Fallback Mock local AI response
