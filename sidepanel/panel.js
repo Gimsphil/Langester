@@ -1,4 +1,4 @@
-// panel.js - Langester Hybrid AI Workspace Controller
+﻿// panel.js - Langester Hybrid AI Workspace Controller
 
 // Global AI Model reference
 let aiModel = null;
@@ -63,6 +63,10 @@ async function runDiagnostics() {
     wizardSection.style.display = 'flex';
     diagStatus.innerText = "설정 필요";
     
+    // Reset steps
+    document.getElementById('step-flags').classList.remove('active', 'complete');
+    document.getElementById('step-components').classList.remove('active', 'complete');
+
     // Detailed Step Diagnostics
     if (!window.ai) {
       document.getElementById('step-flags').classList.add('active');
@@ -81,6 +85,18 @@ async function runDiagnostics() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   const textInput = document.getElementById('text-input');
+  
+  // Attach Wizard Link listeners (CSP Compliance)
+  document.getElementById('btn-link-flags1').addEventListener('click', () => {
+    window.open('chrome://flags/#optimization-guide-on-device-model');
+  });
+  document.getElementById('btn-link-flags2').addEventListener('click', () => {
+    window.open('chrome://flags/#prompt-api-for-gemini-nano');
+  });
+  document.getElementById('btn-link-components').addEventListener('click', () => {
+    window.open('chrome://components');
+  });
+
   await runDiagnostics();
   updateCharCount(textInput.innerText);
 });
@@ -101,13 +117,11 @@ document.getElementById('text-input').addEventListener('input', async (e) => {
   const currentText = e.target.innerText.trim();
   updateCharCount(currentText);
   
-  // 너무 짧은 텍스트는 AI 연동 건너뛰기
   if (currentText.length < 10) {
     document.getElementById('ai-output').innerText = "텍스트가 너무 짧습니다. 대화가 더 입력되면 분석을 시작합니다.";
     return;
   }
 
-  // Debouncing to avoid flooding the API
   clearTimeout(aiTimeout);
   aiTimeout = setTimeout(async () => {
     const model = await getAiModel();
@@ -117,12 +131,10 @@ document.getElementById('text-input').addEventListener('input', async (e) => {
     
     if (model) {
       try {
-        // 갱신할 때마다 기존 오염된 컨텍스트가 꼬이지 않도록 명확한 단발성 세션 생성
         const session = await model.create({
           systemPrompt: "너는 사용자의 브라우저 화면 자막을 분석하는 비서야. 오직 제공된 [대화 내용]에만 집중해서 답해야 해."
         });
         
-        // 로컬 AI(Gemini Nano)가 명령과 본문을 헷갈리지 않게 XML 형태의 태그로 완벽히 분리
         const structuredPrompt = `
 [명령어]
 아래 제공된 [대화 내용]의 핵심 요점과 그에 맞는 추천 답변을 한국어로 작성해라. 다른 사설이나 인사말은 절대 하지 마라.
@@ -144,21 +156,20 @@ ${currentText}
         outputBox.innerText = "내장 AI 분석 오류: " + err.message;
       }
     } else {
-      // Fallback Mock local AI response
       const result = await getSimulatedAIResponse(currentText);
       outputBox.innerText = result;
     }
-  }, 800); // 800ms debounce
+  }, 800);
 });
 
-// Focus Emulations for contenteditable placeholder
-const textInput = document.getElementById('text-input');
-textInput.addEventListener('focus', function() {
+// Focus Emulations
+const textInputElem = document.getElementById('text-input');
+textInputElem.addEventListener('focus', function() {
   if (this.innerText === "구글 미트 자막을 가져오거나 여기에 대화 내용을 입력하세요.") {
     this.innerText = "";
   }
 });
-textInput.addEventListener('blur', function() {
+textInputElem.addEventListener('blur', function() {
   if (this.innerText.trim() === "") {
     this.innerText = "구글 미트 자막을 가져오거나 여기에 대화 내용을 입력하세요.";
   }
@@ -196,7 +207,7 @@ document.getElementById('btn-download-md').addEventListener('click', () => {
 document.getElementById('btn-save-task').addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: "GET_TOKEN" }, async (response) => {
     if (response.error) {
-      alert("🔒 구글 계정 인증에 실패했습니다!\n\n구글 로그인을 원치 않으시면 좌측의 [대안 1] 마크다운 다운로드 기능을 바로 이용하십시오.\n\n(개발자 최종 배포 조치: manifest.json에 정상 발급된 Client ID가 매핑되어 있는지 확인해 주시기 바랍니다. 개발자 모드의 고유 Extension ID 등록이 선행되어야 작동합니다.)");
+      alert("🔒 구글 계정 인증에 실패했습니다!\n\n구글 로그인을 원치 않으시면 좌측의 [대안 1] 마크다운 다운로드 기능을 바로 이용하십시오.\n\n(개발자 최종 배포 조치: manifest.json에 정상 발급된 Client ID가 매핑되어 있는지 확인해 주시기 바랍니다.)");
       return;
     }
     
@@ -236,7 +247,6 @@ document.getElementById('btn-sync-meet').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 
-  // 시스템 페이지 주소인 경우 사전 차단 및 경고
   if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("about:"))) {
     alert("크롬 시스템 페이지에서는 보안상 텍스트를 가져올 수 없습니다. 일반 웹사이트(예: 뉴스, 유튜브)에서 테스트해 주세요!");
     return;
@@ -245,20 +255,16 @@ document.getElementById('btn-sync-meet').addEventListener('click', async () => {
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
-      // 1순위: 사용자가 마우스로 드래그한 텍스트가 있으면 무조건 그걸 가져옴
       const selection = window.getSelection().toString().trim();
       if (selection) return selection;
 
-      // 2순위: 구글 미트 자막 엘리먼트 탐색
       const meetCaptions = document.querySelectorAll('.bhY6Be, .iT96nd, span[data-phrase]');
       if (meetCaptions.length > 0) {
         return Array.from(meetCaptions).map(el => el.innerText).filter(t => t.trim()).slice(-5).join('\n');
       }
 
-      // 3순위: 일반 웹페이지일 경우 주요 본문 텍스트(p 태그) 엘리먼트 수집 우회
       const articles = document.querySelectorAll('article p, main p, div[class*="content"] p, p');
       if (articles.length > 0) {
-        // 화면에 보이는 텍스트 중 상위 몇 문장만 샘플링하여 반환
         return Array.from(articles)
                     .map(el => el.innerText.trim())
                     .filter(t => t.length > 20)
@@ -272,11 +278,7 @@ document.getElementById('btn-sync-meet').addEventListener('click', async () => {
     const textInput = document.getElementById('text-input');
     if (results && results[0] && results[0].result) {
       textInput.innerText = results[0].result;
-      
-      // Update counters
       updateCharCount(results[0].result);
-      
-      // Dispatch input event to trigger AI call immediately
       textInput.dispatchEvent(new Event('input'));
     } else {
       alert("페이지 내에서 활성화된 텍스트나 자막 영역을 감지하지 못했습니다.\n\n원하는 텍스트 영역을 마우스로 드래그(블록 지정)한 뒤 다시 버튼을 클릭하여 시도해 주십시오.");

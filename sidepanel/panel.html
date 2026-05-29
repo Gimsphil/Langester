@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -60,8 +60,8 @@
               <h4>크롬 실험실 설정</h4>
               <p>AI 엔진을 활성화하기 위해 아래 설정을 켜주세요.</p>
               <div class="step-actions">
-                <button class="btn-tiny" onclick="window.open('chrome://flags/#optimization-guide-on-device-model')">주소 복사 1</button>
-                <button class="btn-tiny" onclick="window.open('chrome://flags/#prompt-api-for-gemini-nano')">주소 복사 2</button>
+                <button id="btn-link-flags1" class="btn-tiny">주소 복사 1</button>
+                <button id="btn-link-flags2" class="btn-tiny">주소 복사 2</button>
               </div>
               <p class="step-hint">💡 <strong>Enabled (Bypass control block)</strong>을 권장합니다.</p>
             </div>
@@ -74,7 +74,7 @@
               <h4>AI 모델 다운로드</h4>
               <p>브라우저가 실제로 AI를 다운로드했는지 확인합니다.</p>
               <div class="step-actions">
-                <button class="btn-tiny" onclick="window.open('chrome://components')">컴포넌트 페이지 열기</button>
+                <button id="btn-link-components" class="btn-tiny">컴포넌트 페이지 열기</button>
               </div>
               <p class="step-hint">💡 <strong>Optimization Guide</strong> 항목을 업데이트하세요.</p>
             </div>
@@ -125,7 +125,7 @@
             <span class="storage-number number-green">대안 2</span>
             <h4>구글 Tasks 동기화</h4>
           </div>
-          <p class="storage-desc">개인 구글 계정을 연동하여 공식 구글 Tasks(할 일) 목록에 즉시 보존합니다.</p>
+          <p class="storage-desc">개인 구글 계정을 연동하여 공식 구글 Tasks(할 일 목록)에 즉시 보존합니다.</p>
           <button id="btn-save-task" class="btn btn-success btn-block">
             <span class="btn-icon">💾</span> 구글 계정에 저장
           </button>
