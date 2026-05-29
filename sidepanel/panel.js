@@ -9,22 +9,29 @@ let aiModel = null;
 async function getAiModel() {
   if (aiModel) return aiModel;
   
-  if (window.ai) {
+  // Try finding AI object in multiple possible locations
+  const aiHost = window.ai || (navigator && navigator.ai) || (chrome && chrome.ai);
+  
+  if (aiHost) {
     // 1) Try modern Chrome languageModel spec
-    if (window.ai.languageModel) {
-      const cap = await window.ai.languageModel.capabilities();
-      if (cap.available !== 'no') {
-        aiModel = window.ai.languageModel;
-        return aiModel;
-      }
+    if (aiHost.languageModel) {
+      try {
+        const cap = await aiHost.languageModel.capabilities();
+        if (cap && cap.available !== 'no') {
+          aiModel = aiHost.languageModel;
+          return aiModel;
+        }
+      } catch(e) { console.error("Capabilities check failed:", e); }
     }
     // 2) Try previous Chrome assistant spec
-    if (window.ai.assistant) {
-      const cap = await window.ai.assistant.capabilities();
-      if (cap.available !== 'no') {
-        aiModel = window.ai.assistant;
-        return aiModel;
-      }
+    if (aiHost.assistant) {
+      try {
+        const cap = await aiHost.assistant.capabilities();
+        if (cap && cap.available !== 'no') {
+          aiModel = aiHost.assistant;
+          return aiModel;
+        }
+      } catch(e) { console.error("Assistant capabilities check failed:", e); }
     }
   }
   return null;
@@ -57,18 +64,20 @@ async function runDiagnostics() {
   const wizardSection = document.getElementById('ai-wizard-section');
   const diagStatus = document.getElementById('wizard-diag-status');
   
+  // Clear previous state
+  document.getElementById('step-flags').classList.remove('active', 'complete');
+  document.getElementById('step-components').classList.remove('active', 'complete');
+
+  const aiHost = window.ai || (navigator && navigator.ai);
+
   if (!model) {
     statusDot.classList.add('offline');
     statusBadge.innerText = "MOCK LOCAL AI";
     wizardSection.style.display = 'flex';
     diagStatus.innerText = "설정 필요";
     
-    // Reset steps
-    document.getElementById('step-flags').classList.remove('active', 'complete');
-    document.getElementById('step-components').classList.remove('active', 'complete');
-
     // Detailed Step Diagnostics
-    if (!window.ai) {
+    if (!aiHost) {
       document.getElementById('step-flags').classList.add('active');
     } else {
       document.getElementById('step-flags').classList.add('complete');
@@ -86,15 +95,15 @@ async function runDiagnostics() {
 document.addEventListener('DOMContentLoaded', async () => {
   const textInput = document.getElementById('text-input');
   
-  // Attach Wizard Link listeners (CSP Compliance)
+  // Attach Wizard Link listeners (Using chrome.tabs for secure URLs)
   document.getElementById('btn-link-flags1').addEventListener('click', () => {
-    window.open('chrome://flags/#optimization-guide-on-device-model');
+    chrome.tabs.create({ url: 'chrome://flags/#optimization-guide-on-device-model' });
   });
   document.getElementById('btn-link-flags2').addEventListener('click', () => {
-    window.open('chrome://flags/#prompt-api-for-gemini-nano');
+    chrome.tabs.create({ url: 'chrome://flags/#prompt-api-for-gemini-nano' });
   });
   document.getElementById('btn-link-components').addEventListener('click', () => {
-    window.open('chrome://components');
+    chrome.tabs.create({ url: 'chrome://components' });
   });
 
   await runDiagnostics();
@@ -106,7 +115,12 @@ document.getElementById('btn-re-check').addEventListener('click', async () => {
   btn.innerText = "⏳ 진단 중...";
   aiModel = null; // Reset cache
   await runDiagnostics();
-  setTimeout(() => { btn.innerText = "🔄 다시 진단하기"; }, 500);
+  setTimeout(() => { 
+    btn.innerText = "🔄 다시 진단하기"; 
+    if (!aiModel) {
+      alert("진단 결과: 아직 AI 엔진이 인식되지 않습니다.\n\n[주소 복사] 버튼을 눌러 설정을 다시 확인하고, 반드시 chrome://restart를 통해 브라우저를 재시작해 주세요!");
+    }
+  }, 500);
 });
 
 // ==========================================
