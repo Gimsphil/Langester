@@ -205,22 +205,36 @@ document.getElementById('btn-sync-meet').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 
+  // 시스템 페이지 주소인 경우 사전 차단 및 경고
+  if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("about:"))) {
+    alert("크롬 시스템 페이지에서는 보안상 텍스트를 가져올 수 없습니다. 일반 웹사이트(예: 뉴스, 유튜브)에서 테스트해 주세요!");
+    return;
+  }
+
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
-      // 1) Extract dragged/highlighted mouse text as highest priority
+      // 1순위: 사용자가 마우스로 드래그한 텍스트가 있으면 무조건 그걸 가져옴
       const selection = window.getSelection().toString().trim();
       if (selection) return selection;
 
-      // 2) General fallback: crawl Google Meet / DOM elements
-      const captionElements = document.querySelectorAll('.bhY6Be, .iT96nd, p, span[data-phrase]');
-      if (captionElements.length > 0) {
-        return Array.from(captionElements)
-                    .map(el => el.innerText.trim())
-                    .filter(text => text.length > 0)
-                    .slice(-5)
-                    .join('\n');
+      // 2순위: 구글 미트 자막 엘리먼트 탐색
+      const meetCaptions = document.querySelectorAll('.bhY6Be, .iT96nd, span[data-phrase]');
+      if (meetCaptions.length > 0) {
+        return Array.from(meetCaptions).map(el => el.innerText).filter(t => t.trim()).slice(-5).join('\n');
       }
+
+      // 3순위: 일반 웹페이지일 경우 주요 본문 텍스트(p 태그) 엘리먼트 수집 우회
+      const articles = document.querySelectorAll('article p, main p, div[class*="content"] p, p');
+      if (articles.length > 0) {
+        // 화면에 보이는 텍스트 중 상위 몇 문장만 샘플링하여 반환
+        return Array.from(articles)
+                    .map(el => el.innerText.trim())
+                    .filter(t => t.length > 20)
+                    .slice(0, 3) 
+                    .join('\n\n');
+      }
+
       return null;
     }
   }, (results) => {
