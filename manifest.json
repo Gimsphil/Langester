@@ -20,7 +20,7 @@
     "default_path": "sidepanel/panel.html"
   },
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com",
+    "client_id": "mjemkhaejpfbeoolfgpdlnjmglhjofmm.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/tasks"
     ]
