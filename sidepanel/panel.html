@@ -32,10 +32,29 @@
       
       <!-- Action: Get subtitles / Scrape -->
       <div class="card card-action">
-        <button id="btn-sync-meet" class="btn btn-primary">
-          <span class="btn-icon">🎙️</span> 현재 탭 자막 / 드래그 텍스트 가져오기
-        </button>
+        <div class="btn-group-vertical">
+          <button id="btn-sync-meet" class="btn btn-primary">
+            <span class="btn-icon">🎙️</span> 자막 / 드래그 텍스트 가져오기
+          </button>
+          <button id="btn-sync-youtube" class="btn btn-youtube">
+            <span class="btn-icon">📺</span> YouTube 스튜디오 텍스트 가져오기
+          </button>
+        </div>
       </div>
+
+      <!-- Section: AI Activation Guide (Hidden by default) -->
+      <section id="ai-guide-section" class="section glass-card" style="display: none; border: 1px solid var(--color-accent);">
+        <div class="section-header">
+          <h3 style="color: var(--color-accent);">💡 Gemini Nano 활성화 방법</h3>
+        </div>
+        <div class="guide-content" style="font-size: 12px; line-height: 1.6;">
+          <ol>
+            <li>Chrome 주소창에 <code>chrome://flags/#optimization-guide-on-device-model</code> 입력 후 <strong>Enabled (Bypass control block)</strong> 선택</li>
+            <li><code>chrome://flags/#prompt-api-for-gemini-nano</code> 입력 후 <strong>Enabled</strong> 선택</li>
+            <li>Chrome 재시작 후 <code>chrome://components</code>에서 <strong>Optimization Guide On Device Model</strong> 버전이 다운로드될 때까지 대기</li>
+          </ol>
+        </div>
+      </section>
 
       <!-- Section: Input Editor -->
       <section class="section">

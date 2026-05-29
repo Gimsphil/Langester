@@ -11,7 +11,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*.google.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"

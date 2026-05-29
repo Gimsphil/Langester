@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       "🔮 <strong>오프라인 비서가 대기 중입니다.</strong><br/>" +
       "<span style='font-size: 11px; color: var(--color-text-sub);'>" +
       "크롬 내장 Gemini Nano가 감지되지 않았으나, 하이브리드 로컬 테스트 모듈이 활성화되어 원활한 테스트가 가능합니다. 대화창에 글을 입력해 보세요.</span>";
+    
+    // Show AI activation guide if model is not detected
+    document.getElementById('ai-guide-section').style.display = 'block';
   } else {
     statusDot.classList.remove('offline');
     statusDot.title = "Chrome Gemini Nano 활성화 완료";
@@ -262,6 +265,27 @@ document.getElementById('btn-sync-meet').addEventListener('click', async () => {
       textInput.dispatchEvent(new Event('input'));
     } else {
       alert("페이지 내에서 활성화된 텍스트나 자막 영역을 감지하지 못했습니다.\n\n원하는 텍스트 영역을 마우스로 드래그(블록 지정)한 뒤 다시 버튼을 클릭하여 시도해 주십시오.");
+    }
+  });
+});
+
+// YouTube Studio Integration
+document.getElementById('btn-sync-youtube').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url.includes("studio.youtube.com")) {
+    alert("YouTube 스튜디오 페이지(studio.youtube.com)에서만 작동하는 기능입니다!");
+    return;
+  }
+
+  chrome.tabs.sendMessage(tab.id, { action: "SCRAPE_YOUTUBE_STUDIO" }, (response) => {
+    if (response && response.success) {
+      const combinedText = `[YouTube 제목]\n${response.title}\n\n[YouTube 설명]\n${response.description}`;
+      const textInput = document.getElementById('text-input');
+      textInput.innerText = combinedText;
+      updateCharCount(combinedText);
+      textInput.dispatchEvent(new Event('input'));
+    } else {
+      alert("YouTube 스튜디오에서 텍스트를 가져오지 못했습니다. 페이지가 완전히 로드되었는지 확인해 주세요.");
     }
   });
 });

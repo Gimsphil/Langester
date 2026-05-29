@@ -317,6 +317,32 @@ body {
   width: 100%;
 }
 
+.btn-youtube {
+  background: linear-gradient(135deg, #FF0000, #cc0000);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2);
+  width: 100%;
+}
+
+.btn-youtube:hover {
+  box-shadow: 0 6px 18px rgba(255, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+
 /* Footer */
 .app-footer {
   display: flex;
