@@ -1,130 +1,97 @@
-// panel.js - Langester Hybrid AI Workspace Controller (v1.3.5 Ultimate)
+// panel.js - Langester Hybrid AI Workspace Controller (v1.3.6 Diagnostic)
 
 let aiModel = null;
-let lastError = "";
+let diagLog = [];
 
-// ==========================================
-// 1. AI DETECTION (Deep Search Logic)
-// ==========================================
-async function getAiModel(retries = 3) {
+async function getAiModel() {
   if (aiModel) return aiModel;
+  diagLog = []; // 초기화
 
-  for (let i = 0; i < retries; i++) {
-    try {
-      // 탐색 대상 리스트 (표준 window.ai부터 엔진 내부 객체까지)
-      const candidates = [
-        window.ai,
-        (typeof chrome !== 'undefined' && chrome.ai),
-        (typeof chrome !== 'undefined' && chrome.aiOriginTrial),
-        navigator.ai,
-        self.ai
-      ];
-
-      for (const host of candidates) {
-        if (!host) continue;
-
-        const modelApi = host.languageModel || host.assistant;
-        if (modelApi) {
-          const cap = await modelApi.capabilities();
-          if (cap && cap.available !== 'no') {
-            aiModel = await modelApi.create();
-            console.log("AI Model Found via:", host === window.ai ? "window.ai" : "engine internal");
-            return aiModel;
-          }
+  try {
+    const aiHost = window.ai || (typeof chrome !== 'undefined' && chrome.ai);
+    
+    if (!aiHost) {
+      diagLog.push("❌ window.ai 객체를 찾을 수 없음");
+    } else {
+      diagLog.push("✅ AI 객체 감지됨");
+      const modelApi = aiHost.languageModel || aiHost.assistant;
+      if (!modelApi) {
+        diagLog.push("❌ languageModel API가 누락됨 (Flags 확인 필요)");
+      } else {
+        diagLog.push("✅ API 구조 확인됨");
+        const cap = await modelApi.capabilities();
+        diagLog.push(`ℹ️ 모델 가용성: ${cap.available}`);
+        if (cap.available !== 'no') {
+          aiModel = await modelApi.create();
+          return aiModel;
         }
       }
-      lastError = "AI API 객체를 찾을 수 없습니다. (Flags 설정 재확인 필요)";
-    } catch (e) {
-      lastError = "검사 중 오류: " + e.message;
     }
-    if (i < retries - 1) await new Promise(r => setTimeout(r, 600));
+  } catch (e) {
+    diagLog.push(`❌ 에러 발생: ${e.message}`);
   }
   return null;
 }
 
-// 2. DIAGNOSTICS & UI
 async function runDiagnostics() {
   const statusBadge = document.getElementById('ai-model-badge');
   const statusDot = document.getElementById('system-status-dot');
-  const wizardSection = document.getElementById('ai-wizard-section');
   const outputBox = document.getElementById('ai-output');
 
-  statusBadge.innerText = "연결 시도 중...";
-  const model = await getAiModel(5);
+  statusBadge.innerText = "진단 중...";
+  const model = await getAiModel();
 
   if (!model) {
     statusDot.className = "status-dot offline";
     statusBadge.innerText = "AI OFFLINE";
-    wizardSection.style.display = 'flex';
     outputBox.innerHTML = `
-      <div style="color:#f87171; font-weight:600; margin-bottom:8px;">⚠️ AI 연결 실패: ${lastError}</div>
-      <div style="font-size:11px; color:#9ca3af; line-height:1.6;">
-        <b>다음 해결 방법을 시도해 보세요:</b><br>
-        1. <b>chrome://flags</b> 에서 두 설정이 모두 <b>Enabled</b> 인지 확인.<br>
-        2. 브라우저 우측 상단 점 3개 -> <b>도움말 -> Chrome 정보</b>에서 최신 업데이트 확인.<br>
-        3. <b>chrome://restart</b> 를 입력해 브라우저를 완전히 껐다 켜기.
+      <div style="color:#f87171; font-weight:600; margin-bottom:10px;">⚠️ AI 연동 실패 상세 로그:</div>
+      <div style="font-family:monospace; font-size:11px; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; color:#ddd; line-height:1.6;">
+        ${diagLog.join("<br>")}
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:#9ca3af;">
+        * 모든 로그가 ✅인데 안 된다면 크롬을 완전히 종료 후 다시 실행해 보세요.
       </div>
     `;
   } else {
     statusDot.className = "status-dot";
     statusBadge.innerText = "GEMINI NANO ACTIVE";
-    wizardSection.style.display = 'none';
-    outputBox.innerText = "✨ 로컬 AI 연동에 성공했습니다! 대화를 시작하세요.";
+    document.getElementById('ai-wizard-section').classList.add('collapsed');
+    outputBox.innerText = "✨ 연동 성공! 이제 대화를 입력하시면 실시간 분석을 시작합니다.";
   }
 }
 
-// 이벤트 리스너 등록
+// 이벤트 및 기본 기능
 document.addEventListener('DOMContentLoaded', async () => {
-  const textInput = document.getElementById('text-input');
-  
-  // 마법사 링크 연결
   document.getElementById('btn-link-flags1').onclick = () => chrome.tabs.create({ url: 'chrome://flags/#optimization-guide-on-device-model' });
   document.getElementById('btn-link-flags2').onclick = () => chrome.tabs.create({ url: 'chrome://flags/#prompt-api-for-gemini-nano' });
   document.getElementById('btn-link-components').onclick = () => chrome.tabs.create({ url: 'chrome://on-device-internals' });
-
   const wizardHeader = document.querySelector('.wizard-header');
-  if (wizardHeader) {
-    wizardHeader.onclick = () => document.getElementById('ai-wizard-section').classList.toggle('collapsed');
-  }
-
+  if (wizardHeader) wizardHeader.onclick = () => document.getElementById('ai-wizard-section').classList.toggle('collapsed');
+  
   await runDiagnostics();
 });
 
-document.getElementById('btn-re-check').onclick = async () => {
-  aiModel = null;
-  await runDiagnostics();
-};
+document.getElementById('btn-re-check').onclick = async () => { aiModel = null; await runDiagnostics(); };
 
-// 3. AI ACTION
-let aiTimeout = null;
 document.getElementById('text-input').oninput = async (e) => {
   const currentText = e.target.innerText.trim();
   if (currentText.length < 5) return;
-
-  clearTimeout(aiTimeout);
-  aiTimeout = setTimeout(async () => {
-    const model = await getAiModel(1);
-    const outputBox = document.getElementById('ai-output');
-
-    if (model) {
-      outputBox.innerText = "분석 중...";
-      try {
-        const result = await model.prompt(`내용을 요약하고 추천 답변을 한 줄씩 작성해줘.\n내용: """\n${currentText}\n"""`);
-        outputBox.innerText = result.trim();
-      } catch (err) {
-        outputBox.innerText = "AI 오류: " + err.message;
-        aiModel = null;
-      }
-    }
-  }, 1000);
+  const model = await getAiModel();
+  const outputBox = document.getElementById('ai-output');
+  if (model) {
+    outputBox.innerText = "분석 중...";
+    try {
+      const result = await model.prompt(`내용을 요약하고 추천 답변을 한 줄씩 작성해줘.\n내용: """\n${currentText}\n"""`);
+      outputBox.innerText = result.trim();
+    } catch (err) { outputBox.innerText = "분석 오류: " + err.message; aiModel = null; }
+  }
 };
 
-// 텍스트 박스 도우미
 const textInputElem = document.getElementById('text-input');
 textInputElem.onfocus = function() { if (this.innerText.includes("입력하세요")) this.innerText = ""; };
 textInputElem.onblur = function() { if (!this.innerText.trim()) this.innerText = "텍스트를 가져오거나 여기에 입력하세요."; };
 
-// 스크래핑 기능
 document.getElementById('btn-sync-meet').onclick = async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || tab.url.startsWith("chrome://")) return;
@@ -137,4 +104,11 @@ document.getElementById('btn-sync-meet').onclick = async () => {
       textInputElem.dispatchEvent(new Event('input'));
     }
   });
+};
+
+document.getElementById('btn-download-md').onclick = () => {
+  const blob = new Blob([document.getElementById('text-input').innerText], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "Langester_Report.md"; link.click();
 };
