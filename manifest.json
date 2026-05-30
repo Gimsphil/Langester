@@ -1,16 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Langester AI Co-Pilot",
-  "version": "1.3.2",
-  "description": "크롬 내장 Gemini Nano와 구글 워크스페이스를 결합한 프리미엄 로컬 AI 비서 워크스페이스",
+  "version": "1.3.3",
+  "description": "크롬 내장 Gemini Nano 기반 프리미엄 로컬 AI 비서",
   "permissions": [
     "sidePanel",
     "storage",
     "identity",
     "activeTab",
     "scripting",
-    "tabs",
-    "aiLanguageModelOriginTrial"
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
