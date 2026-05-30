@@ -10,17 +10,25 @@ async function getAiModel() {
   if (aiModel) return aiModel;
 
   try {
-    const aiHost = window.ai || (navigator && navigator.ai) || (chrome && chrome.ai);
-    if (!aiHost || !aiHost.languageModel) return null;
+    // 탐색 순서: chrome.aiOriginTrial (최신) > window.ai (표준) > navigator.ai
+    const aiHost = (typeof chrome !== 'undefined' && chrome.aiOriginTrial) || 
+                   (typeof chrome !== 'undefined' && chrome.ai) || 
+                   window.ai || 
+                   (navigator && navigator.ai);
 
-    // 타임아웃이 포함된 감지 로직
-    const capabilitiesPromise = aiHost.languageModel.capabilities();
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000));
+    if (!aiHost || (!aiHost.languageModel && !aiHost.assistant)) {
+      console.log("AI Host or languageModel API not found.");
+      return null;
+    }
+
+    const modelApi = aiHost.languageModel || aiHost.assistant;
+    const cap = await modelApi.capabilities();
     
-    const cap = await Promise.race([capabilitiesPromise, timeoutPromise]);
-    
-    if (cap && cap.available === 'readily') {
-      aiModel = await aiHost.languageModel.create();
+    console.log("AI Capabilities:", cap.available);
+
+    if (cap && cap.available !== 'no') {
+      // 세션 생성 시도
+      aiModel = await modelApi.create();
       return aiModel;
     }
   } catch(e) { 
@@ -53,23 +61,20 @@ async function runDiagnostics() {
   document.getElementById('step-flags').classList.remove('active', 'complete');
   document.getElementById('step-components').classList.remove('active', 'complete');
 
-  const aiHost = window.ai || (navigator && navigator.ai);
-
   if (!model) {
     statusDot.classList.add('offline');
     statusBadge.innerText = "AI OFFLINE";
     wizardSection.style.display = 'flex';
     diagStatus.innerText = "설정 필요";
 
-    if (!aiHost || !aiHost.languageModel) {
+    // API 존재 여부로 단계 표시
+    const aiHost = (typeof chrome !== 'undefined' && chrome.aiOriginTrial) || window.ai;
+    if (!aiHost) {
       document.getElementById('step-flags').classList.add('active');
     } else {
       document.getElementById('step-flags').classList.add('complete');
       document.getElementById('step-components').classList.add('active');
-      diagStatus.innerText = "모델 로드 대기 중";
-    }
-    if (outputBox.innerText.includes("Gemini Nano")) {
-       outputBox.innerText = "⚠️ 로컬 AI 모델이 감지되지 않았습니다. 상단의 마법사 가이드를 따라주세요.";
+      diagStatus.innerText = "모델 인식 실패";
     }
   } else {
     statusDot.classList.remove('offline');
@@ -111,9 +116,9 @@ document.getElementById('btn-re-check').addEventListener('click', async () => {
   setTimeout(() => {
     btn.innerText = "🔄 다시 진단하기";
     if (!aiModel) {
-      alert("진단 결과: 로컬 AI 엔진이 아직 준비되지 않았습니다.\n\n[컴포넌트 페이지 열기]를 눌러 모델 상태가 'Ready'인지 다시 한 번 확인해 주세요!");
+      alert("진단 결과: 로컬 AI 엔진이 아직 준비되지 않았습니다.\n\n[컴포넌트 페이지 열기]를 눌러 모델 상태가 'Ready'인지 확인하고, 크롬을 완전히 재시작해 주세요!");
     }
-  }, 800);
+  }, 500);
 });
 
 // ==========================================
@@ -138,26 +143,20 @@ document.getElementById('text-input').addEventListener('input', async (e) => {
       outputBox.innerText = "Gemini가 문맥 분석 중...";
       try {
         const structuredPrompt = `
-[명령어]
-아래 제공된 [내용]의 핵심 요점과 추천 답변을 한국어로 작성해라.
-
-[형식]
-• 요점: (한 줄 요약)
-• 추천 답변: (자연스러운 답변 한 줄)
-
-[내용]
-"""
+아래 내용을 요약하고 답장을 추천해줘.
+내용: """
 ${currentText}
 """
-`;
+요점:
+추천 답변:`;
         const result = await model.prompt(structuredPrompt);
         outputBox.innerText = result.trim();
       } catch (err) {
-        outputBox.innerText = "내장 AI 분석 오류: " + err.message;
-        aiModel = null; // Reset on failure
+        outputBox.innerText = "분석 오류: " + err.message;
+        aiModel = null;
       }
     } else {
-      outputBox.innerText = "⚠️ 로컬 AI 모델이 연결되지 않았습니다. 상단 마법사의 '다시 진단하기'를 클릭해 보세요.";
+      outputBox.innerText = "⚠️ 로컬 AI 모델 연결 안 됨. 상단 가이드를 확인하세요.";
     }
   }, 1000);
 });
@@ -174,57 +173,34 @@ textInputElem.addEventListener('blur', function() {
   }
 });
 
-// 나머지 저장 및 스크래핑 기능 유지
+// 저장 및 스크래핑 기능 (단순화 유지)
 document.getElementById('btn-download-md').addEventListener('click', () => { 
   const originalText = document.getElementById('text-input').innerText;
   const aiOutput = document.getElementById('ai-output').innerText;
-  if (originalText.trim().length === 0 || originalText.includes("여기에 입력하세요")) return;
-  const dateStr = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\s/g, '');
-  const fileContent = `# Langester AI Report\n\n## 🤖 Gemini Nano 분석\n${aiOutput}\n\n## 📝 원본 텍스트\n${originalText}`;
-  const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8;' });
+  const blob = new Blob([`# Report\n\n${aiOutput}\n\n${originalText}`], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", `Langester_${dateStr}.md`);
-  document.body.appendChild(link);
+  link.download = `Langester_Report.md`;
   link.click();
-  document.body.removeChild(link);
 });
 
 document.getElementById('btn-save-task').addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: "GET_TOKEN" }, async (response) => {
-    if (response.error) { alert("🔒 구글 계정 인증 실패!"); return; }
-    const token = response.token;
-    const summaryData = document.getElementById('ai-output').innerText;
-    const originalText = document.getElementById('text-input').innerText;
-    try {
-      const res = await fetch('https://www.googleapis.com/tasks/v1/lists/@default/tasks', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: "[Langester] AI 요약", notes: `${summaryData}\n\n${originalText}` })
-      });
-      if (res.ok) alert("🎉 구글 Tasks 저장 완료!");
-    } catch (error) { alert("에러: " + error.message); }
+    if (response.token) alert("OAuth 연동 성공 (기능 준비 중)");
+    else alert("로그인 필요");
   });
 });
 
 document.getElementById('btn-sync-meet').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || tab.url.startsWith("chrome://")) return;
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: () => {
-      const selection = window.getSelection().toString().trim();
-      if (selection) return selection;
-      const meetCaptions = document.querySelectorAll('.bhY6Be, .iT96nd, span[data-phrase]');
-      if (meetCaptions.length > 0) return Array.from(meetCaptions).map(el => el.innerText).filter(t => t.trim()).slice(-5).join('\n');
-      return null;
-    }
+    func: () => window.getSelection().toString() || document.body.innerText.slice(0, 500)
   }, (results) => {
-    if (results && results[0] && results[0].result) {
+    if (results && results[0].result) {
       const textInput = document.getElementById('text-input');
       textInput.innerText = results[0].result;
-      updateCharCount(results[0].result);
       textInput.dispatchEvent(new Event('input'));
     }
   });
